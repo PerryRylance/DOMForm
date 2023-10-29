@@ -22,6 +22,8 @@ Here's a very, very basic example, assuming you have a file named `form.html` an
 ### Basic example
 ```
 $document = new DOMFormDocument();
+$document->loadHTML('form.html');
+
 $form = $document->find("form");
 
 if(!empty($_POST))
