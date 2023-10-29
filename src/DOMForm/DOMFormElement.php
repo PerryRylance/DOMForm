@@ -16,6 +16,7 @@ use PerryRylance\DOMForm\Exceptions\NoElementsToPopulateException;
 use PerryRylance\DOMForm\Exceptions\RadioRequiredException;
 use PerryRylance\DOMForm\Exceptions\ValueRequiredException;
 use PerryRylance\DOMForm\Exceptions\ReadonlyException;
+use PerryRylance\DOMForm\Handlers\DOMFormPopulateErrorHandler;
 
 class DOMFormElement extends DOMElement
 {
@@ -24,13 +25,15 @@ class DOMFormElement extends DOMElement
 	const WEEK_FORMAT = 'Y-\WW';
 	const TIME_FORMAT = 'H:i';
 
+	public static DOMFormPopulateErrorHandler $defaultPopulateErrorHandler;
+
 	protected function assertIsForm(): void
 	{
 		if(!preg_match('/^form$/i', $this->nodeName))
 			throw new ElementNotFormException("Failed to assert element is a form");
 	}
 
-	protected function parseDatetime(string $raw, string $type)
+	protected function parseDatetime(string $raw, string $type, DOMFormPopulateErrorHandler $errorHandler, DOMFormElement $element, &$numErrors)
 	{
 		switch(strtolower($type))
 		{
@@ -57,39 +60,52 @@ class DOMFormElement extends DOMElement
 		{
 			// NB: Looks like PHP supports writing weeks, but doesn't support parsing weeks. So we have to shim this in.
 			if(!preg_match('/^(\d{4})-W(\d{1,2})$/', $raw, $m))
-				throw new DatetimeFormatException("Value does not match expected format");
-			
-			$year = (int)$m[1];
-			$week = (int)$m[2];
+			{
+				$errorHandler->handle(new DatetimeFormatException("Value does not match expected format"), $element);
+				$numErrors++;
+				$result = false; // NB: Imitate DateTime::createFromFormat
+			}
+			else
+			{
+				$year = (int)$m[1];
+				$week = (int)$m[2];
 
-			$result = new DateTime();
-			$result->setTimestamp(strtotime("First Monday of $year"));
-			$result->modify("+$week week");
+				$result = new DateTime();
+				$result->setTimestamp(strtotime("First Monday of $year"));
+				$result->modify("+$week week");
+			}
 		}
 		else
 			$result = DateTime::createFromFormat($format, $raw);
 
 		if($result === false)
-			throw new DatetimeFormatException("Value does not match expected format");
+		{
+			$errorHandler->handle(new DatetimeFormatException("Value does not match expected format"), $element);
+			$numErrors++;
+		}
 
 		return $result;
 	}
 
-	public function getInputs(?string $name = null): DOMObject
+	/**
+	 * This method takes data as an input and attempts to populate the form from the input, validating using HTML5's validation attributes. If validation passes, this method returns the validated data. If any validation fails, this method returns false.
+	 * 
+	 * @param iterable $data The input data, for example $_POST
+	 * @param DOMFormPopulateErrorHandler|null $errorHandler The error handler to use. Defaults to DOMFormPopulateErrorHandler, which throws an exception and halts on bad or missing values.
+	 * 
+	 * @return array|false The validated, serialized data on success, or false if validation failed.
+	 */
+	public function populate(iterable $data, ?DOMFormPopulateErrorHandler $errorHandler = null): array | false
 	{
-		$self = new DOMObject($this);
-
-		if(is_null($name))
-			return $self->find("[name], [data-name]");
-
-		$escaped = addslashes($name);
-
-		return $self->find("[name='$escaped'], [data-name='$escaped']");
-	}
-
-	public function populate(iterable $data): void
-	{
+		$numErrors = 0;
+		
 		$this->assertIsForm();
+
+		if(!isset(DOMFormElement::$defaultPopulateErrorHandler))
+			DOMFormElement::$defaultPopulateErrorHandler = new DOMFormPopulateErrorHandler();
+		
+		if(is_null($errorHandler))
+			$errorHandler = DOMFormElement::$defaultPopulateErrorHandler;
 
 		if(is_array($data) && array_is_list($data))
 			throw new Exception('Expected associative array');
@@ -130,7 +146,9 @@ class DOMFormElement extends DOMElement
 								throw new InvalidRegexException();
 							
 							if($result === 0)
-								throw new BadValueException("Value does not match specified pattern");
+							{												$errorHandler->handle(new BadValueException("Value does not match specified pattern"), $element);
+								$numErrors++;
+							}
 						}
 
 						switch($type)
@@ -138,7 +156,10 @@ class DOMFormElement extends DOMElement
 							case "url":
 
 								if(!filter_var($value, FILTER_VALIDATE_URL))
-									throw new BadValueException("Invalid URL");
+								{
+									$errorHandler->handle(new BadValueException("Invalid URL"), $element);
+									$numErrors++;
+								}
 
 								break;
 
@@ -150,11 +171,17 @@ class DOMFormElement extends DOMElement
 
 									foreach($emails as $email)
 										if(!filter_var($email, FILTER_VALIDATE_EMAIL))
-											throw new BadValueException("One or more e-mail addresses are invalid");
+										{
+											$errorHandler->handle(new BadValueException("One or more e-mail addresses are invalid"), $element);
+											$numErrors++;
+										}
 								}
 								else
 									if(!filter_var($value, FILTER_VALIDATE_EMAIL))
-										throw new BadValueException("Invalid email address");
+									{
+										$errorHandler->handle(new BadValueException("Invalid email address"), $element);
+										$numErrors++;
+									}
 
 								break;
 							
@@ -162,13 +189,22 @@ class DOMFormElement extends DOMElement
 							case "range":
 
 								if(!is_numeric($value))
-									throw new BadValueException("Invalid number");
+								{
+									$errorHandler->handle(new BadValueException("Invalid number"), $element);
+									$numErrors++;
+								}
 								
 								if($element->hasAttribute("min") && $value < $element->getAttribute("min"))
-									throw new BadValueException("Below minimum");
+								{
+									$errorHandler->handle(new BadValueException("Below minimum"), $element);
+									$numErrors++;
+								}
 								
 								if($element->hasAttribute("max") && $value > $element->getAttribute("max"))
-									throw new BadValueException("Above maximum");
+								{
+									$errorHandler->handle(new BadValueException("Above maximum"), $element);
+									$numErrors++;
+								}
 								
 								if($element->hasAttribute("step"))
 								{
@@ -181,14 +217,20 @@ class DOMFormElement extends DOMElement
 
 										// NB: Delta threshold at 1e-15
 										if($remainder >= 1e-15)
-											throw new BadValueException("Out of sequence");
+										{
+											$errorHandler->handle(new BadValueException("Out of sequence"), $element);
+											$numErrors++;
+										}
 									}
 									else
 									{
 										$remainder = abs($value) % $step;
 
 										if($remainder !== 0)
-											throw new BadValueException("Out of sequence");
+										{
+											$errorHandler->handle(new BadValueException("Out of sequence"), $element);
+											$numErrors++;
+										}
 									}
 								}
 
@@ -197,7 +239,10 @@ class DOMFormElement extends DOMElement
 							case "color":
 
 								if(!preg_match('/^#[0-f]{6}$/i', $value))
-									throw new BadValueException("Not a valid color");
+								{
+									$errorHandler->handle(new BadValueException("Not a valid color"), $element);
+									$numErrors++;
+								}
 
 								break;
 							
@@ -206,22 +251,28 @@ class DOMFormElement extends DOMElement
 							case "week":
 							case "time":
 
-								$datetime = $this->parseDatetime($value, $type);
+								$datetime = $this->parseDatetime($value, $type, $errorHandler, $element, $numErrors);
 
 								if($element->hasAttribute('min'))
 								{
-									$min = $this->parseDatetime($element->getAttribute('min'), $type);
+									$min = $this->parseDatetime($element->getAttribute('min'), $type, $errorHandler, $element, $numErrors);
 
 									if($datetime < $min)
-										throw new BadValueException("Below minimum");
+									{
+										$errorHandler->handle(new BadValueException("Below minimum"), $element);
+										$numErrors++;
+									}
 								}
 
 								if($element->hasAttribute('max'))
 								{
-									$max = $this->parseDatetime($element->getAttribute('max'), $type);
+									$max = $this->parseDatetime($element->getAttribute('max'), $type, $errorHandler, $element, $numErrors);
 
 									if($datetime > $max)
-										throw new BadValueException("Above maximum");
+									{
+										$errorHandler->handle(new BadValueException("Above maximum"), $element);
+										$numErrors++;	
+									}
 								}
 
 							default:
@@ -235,13 +286,22 @@ class DOMFormElement extends DOMElement
 					case "select":
 
 						if($element->hasAttribute("required") && empty($value))
-							throw new ValueRequiredException("Must be filled");
+						{
+							$errorHandler->handle(new ValueRequiredException("Must be filled"), $element);
+							$numErrors++;
+						}
 						
 						if($element->hasAttribute("readonly"))
-							throw new ReadonlyException("Field is read only");
+						{
+							$errorHandler->handle(new ReadonlyException("Field is read only"), $element);
+							$numErrors++;
+						}
 						
 						if($element->hasAttribute("disabled"))
-							throw new ReadonlyException("Field is disabled");
+						{
+							$errorHandler->handle(new ReadonlyException("Field is disabled"), $element);
+							$numErrors++;
+						}
 						
 						if($name === 'select')
 						{
@@ -253,10 +313,16 @@ class DOMFormElement extends DOMElement
 									trigger_error('Expected multi-select to have array brackets at end of name', E_USER_WARNING);
 
 								if(!is_array($value))
-									throw new BadValueException('Expected an array for multi-select');
+								{
+									$errorHandler->handle(new BadValueException('Expected an array for multi-select'), $element);
+									$numErrors++;
+								}
 								
 								if(!array_is_list($value))
-									throw new BadValueException("Expected an indexed array for multi-select");
+								{
+									$errorHandler->handle(new BadValueException("Expected an indexed array for multi-select"), $element);
+									$numErrors++;
+								}
 								
 								// NB: Explicitly unselect any initially selected values, see https://github.com/PerryRylance/DOMDocument/issues/63
 								$target
@@ -274,7 +340,10 @@ class DOMFormElement extends DOMElement
 								$option = $target->find("option[value='$escaped']");
 
 								if(!count($option))
-									throw new BadValueException("Specified selection is invalid");
+								{
+									$errorHandler->handle(new BadValueException("Specified selection is invalid"), $element);
+									$numErrors++;
+								}
 
 								if($isMultiSelect)
 									$option->attr("selected", "selected");
@@ -309,7 +378,10 @@ class DOMFormElement extends DOMElement
 			else
 			{
 				if($required)
-					throw new CheckboxRequiredException();
+				{
+					$errorHandler->handle(new CheckboxRequiredException("Must be checked"), $checkbox);
+					$numErrors++;
+				}
 
 				$checkbox->removeAttribute('checked');
 			}
@@ -328,7 +400,11 @@ class DOMFormElement extends DOMElement
 			if(!isset($data[$name]))
 			{
 				if(isset($isRadioRequiredByName[$name]))
-					throw new RadioRequiredException();
+				{
+					// TODO: Enhance, only flag this up on the last element.
+					$errorHandler->handle(new RadioRequiredException('Selection required'), $radio);
+					$numErrors++;
+				}
 
 				continue;
 			}
@@ -342,8 +418,18 @@ class DOMFormElement extends DOMElement
 
 			$radio->setAttribute("checked", "checked");
 		}
+
+		if($numErrors > 0)
+			return false;
+		
+		return $this->serialize();
 	}
 
+	/**
+	 * This method serializes the data in the form. Useful for getting defaults from the HTML. If you are trying to retrieve serialized and validated data, it's better to use the return value from populate - this function can potentially give you bad data on it's own eg after a failed call to populate.
+	 * 
+	 * @return array The serialized data from the forms inputs
+	 */
 	public function serialize(): array
 	{
 		$this->assertIsForm();

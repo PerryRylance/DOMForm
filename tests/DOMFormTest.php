@@ -1,10 +1,9 @@
 <?php declare(strict_types=1);
 
-use PHPUnit\Framework\TestCase;
+require_once __DIR__ . '/DOMFormBaseTestCase.php';
 
 use PerryRylance\DOMDocument\DOMObject;
 
-use PerryRylance\DOMFormDocument;
 use PerryRylance\DOMForm\DOMFormElement;
 use PerryRylance\DOMForm\Exceptions\BadValueException;
 use PerryRylance\DOMForm\Exceptions\CheckboxRequiredException;
@@ -16,43 +15,8 @@ use PerryRylance\DOMForm\Exceptions\RadioRequiredException;
 use PerryRylance\DOMForm\Exceptions\ReadonlyException;
 use PerryRylance\DOMForm\Exceptions\ValueRequiredException;
 
-final class DOMFormTest extends TestCase
+final class DOMFormTest extends DOMFormBaseTestCase
 {
-	protected DOMFormDocument $document;
-
-	protected function setUp(): void
-	{
-		$this->document = new DOMFormDocument();
-		$this->document->load(__DIR__ . "/sample.html");
-	}
-
-	private function getForm(): DOMFormElement
-	{
-		$this->assertNotEmpty($this->document->forms);
-
-		return $this->document->forms[0];
-	}
-
-	private function getRequiredFields(): array
-	{
-		$requirements	= [];
-		$form			= $this->getForm();
-
-		foreach($form->querySelectorAll("[name][required]") as $element)
-			$requirements[ $element->getAttribute('name') ] = $element->getAttribute('value');
-		
-		return $requirements;
-	}
-
-	// NB: Normally we wouldn't partially populate a form, but we need to in testing. Use this function to include the required fields that we would expect when processing a full submission - eg POST from the browser.
-	private function populateWithRequired(?array $input = []): void
-	{
-		$requirements	= $this->getRequiredFields();
-		$data			= [...$requirements, ...$input];
-
-		$this->getForm()->populate($data);
-	}
-
 	public function testFormIsDomFormElement(): void
 	{
 		$form = $this->getForm();
@@ -71,7 +35,7 @@ final class DOMFormTest extends TestCase
 		$labels[0]->populate([]);
 	}
 
-	public function testPopulateWithInvalidData(): void
+	public function testCannotPopulateNonExistantField(): void
 	{
 		$this->expectException(NoElementsToPopulateException::class);
 
@@ -95,9 +59,7 @@ final class DOMFormTest extends TestCase
 	{
 		$this->expectException(ValueRequiredException::class);
 
-		$form = $this->getForm();
-
-		$form->populate([
+		$this->populateWithRequired([
 			'required' => ''
 		]);
 	}
@@ -194,19 +156,19 @@ final class DOMFormTest extends TestCase
 
 	public function testCanPopulateWithValidNumber(): void
 	{
-		$this->testPopulateWithInvalidData([
+		$this->populateWithRequired([
 			'numeric' => 64
 		]);
 	}
 
-	public function testCannotPopulateRangeUnderMin(): void
+	public function testCannotPopulateRangeUnderMinimum(): void
 	{
 		$this->testThrowsBadValueException([
 			'range' => PHP_INT_MIN
 		]);
 	}
 
-	public function testCannotPopulateRangeOverMax(): void
+	public function testCannotPopulateRangeOverMaximum(): void
 	{
 		$this->testThrowsBadValueException([
 			'range' => PHP_INT_MAX
@@ -288,11 +250,11 @@ final class DOMFormTest extends TestCase
 	{
 		$this->expectException(RadioRequiredException::class);
 
-		$data = $this->getRequiredFields();
+		$fields = $this->getRequiredFields();
 
-		unset($data['favourite-car']);
+		unset($fields['favourite-car']);
 
-		$this->getForm()->populate($data);
+		$this->getForm()->populate($fields);
 	}
 
 	public function testRadioUncheckedAfterValueUpdated(): void
@@ -440,6 +402,15 @@ final class DOMFormTest extends TestCase
 		$data = $this->getForm()->serialize();
 
 		$this->assertEquals('2013-W29', $data['week']);
+	}
+
+	public function testCannotPopulateInvalidWeek(): void
+	{
+		$this->expectException(DatetimeFormatException::class);
+
+		$this->populateWithRequired([
+			'week' => 'Definitely an invalid week'
+		]);
 	}
 
 	public function testCannotPopulateWeekBelowMinimum(): void

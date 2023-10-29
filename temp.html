@@ -1,0 +1,304 @@
+<form method="POST">
+
+			<fieldset>
+				<legend>
+					Basic inputs
+				</legend>
+				<ul>
+					<li>
+						<label>
+							Unnamed input
+							<input>
+						</label>
+					</li>
+					<li>
+						<label>
+							Named input
+							<input name="animal" value="Zebra">
+						</label>
+					</li>
+					<li>
+						<label>
+							Required input
+							<input name="required" required value="I must be filled">
+						</label>
+					</li>
+					<li>
+						<label>
+							Readonly input
+							<input name="readonly" value="readonly" readonly>
+						</label>
+					</li>
+					<li>
+						<label>
+							Disabled input
+							<input name="disabled" value="unused" disabled>
+						</label>
+					</li>
+					<li>
+						<label>
+							Hidden input
+							<input name="hidden" type="hidden" value="hidden">
+						</label>
+					</li>
+					<li>
+						<label>
+							URL input
+							<input name="url" type="url" value="https://perryrylance.com">
+						</label>
+					</li>
+				</ul>
+			</fieldset>
+
+			<fieldset>
+				<legend>Typed inputs</legend>
+				<ul>
+					<li>
+						<label>
+							E-mail input
+							<input name="email" type="email" value="contact@perryrylance.com">
+						</label>
+					</li>
+					<li>
+						<label>
+							Multiple e-mail input
+							<input name="bcc" type="email" multiple value="contact@perryrylance.com,example@test.com">
+						</label>
+					</li>
+					<li>
+						<label>
+							Numeric input
+							<input type="number" name="numeric" value="123">
+						</label>
+					</li>
+					<li>
+						<label>
+							Range input
+							<input name="range" type="range" min="50000" max="500000" step="100" value="250000">
+						</label>
+					</li>
+					<li>
+						<label>
+							Colour input
+							<input type="color" name="color" value="#ff0000">
+						</label>
+					</li>
+					<li>
+						<label>
+							Checkbox input
+							<input name="checkbox" type="checkbox" value="checked">
+						</label>
+					</li>
+					<li>
+						<label>
+							Required checkbox input
+							<input name="required-checkbox" type="checkbox" value="checked" checked="checked" required>
+						</label>
+					</li>
+					<li>
+						Radio inputs
+						<label>
+							<input name="favourite-animal" type="radio" value="lions">
+							Lions
+						</label>
+						<label>
+							<input name="favourite-animal" type="radio" value="tigers">
+							Tigers
+						</label>
+						<label>
+							<input name="favourite-animal" type="radio" value="bears">
+							Bears
+						</label>
+					</li>
+					<li>
+						Required radio inputs
+						<label>
+							<input name="favourite-car" type="radio" value="ford" required>
+							Ford
+						</label>
+						<label>
+							<input name="favourite-car" type="radio" value="ford">
+							Mercedes
+						</label>
+						<label>
+							<input name="favourite-car" type="radio" value="ford" checked="checked">
+							Iveco
+						</label>
+					</li>
+				</ul>
+			</fieldset>
+
+			<fieldset>
+				<legend>Numeric inputs</legend>
+				<ul>
+					<li>
+						<label>
+							Ranged numeric inputs
+							<input type="number" name="minimum" min="1" value="9223372036854775807">
+							<input type="number" name="maximum" max="1234" value="123">
+						</label>
+					</li>
+					<li>
+						<label>
+							Stepped numeric input
+							<input type="number" name="stepped-integer" min="1" max="10" step="2">
+							<input type="number" name="stepped-float" min="1" max="10" step="0.3">
+						</label>
+					</li>
+				</ul>
+			</fieldset>
+
+			<fieldset>
+				<legend>Datetime inputs</legend>
+				<ul>
+					<li>
+						<label>
+							Datetime (Local)
+							<input type="datetime-local" name="datetime-local" value="2018-06-12T19:30">
+						</label>
+					</li>
+					<li>
+						<label>
+							Datetime (Local) with min
+							<input type="datetime-local" name="datetime-local-with-min" min="2018-06-07T00:00" value="2018-06-12T19:30">
+						</label>
+					</li>
+					<li>
+						<label>
+							Datetime (Local) with max
+							<input type="datetime-local" name="datetime-local-with-max" max="2018-06-14T00:00" value="2018-06-12T19:30">
+						</label>
+					</li>
+					<li>
+						<label>
+							Month
+							<input type="month" name="month" value="2018-05">
+						</label>
+					</li>
+					<li>
+						<label>
+							Month with min
+							<input type="month" name="month-with-min" min="2018-03" value="2018-05">
+						</label>
+					</li>
+					<li>
+						<label>
+							Month with max
+							<input type="month" name="month-with-max" max="2018-07" value="2018-05">
+						</label>
+					</li>
+					<li>
+						<label>
+							Month with min and max
+							<input type="month" name="month-with-min-and-max" min="2018-03" max="2018-07" value="2018-05">
+						</label>
+					</li>
+					<li>
+						<label>
+							Week with min and max
+							<input type="week" name="week" min="2013-W28" max="2013-W32" value="2013-W30">
+						</label>
+					</li>
+					<li>
+						<label>
+							Time with min and max
+							<input type="time" name="time" min="09:00" max="17:00" value="13:00">
+						</label>
+					</li>
+				</ul>
+			</fieldset>
+
+			<fieldset>
+				<legend>Pattern matching</legend>
+				<ul>
+					<li>
+						<label>
+							Postcode
+							<input name="postcode" pattern="^([a-zA-Z]{1,2}[a-zA-Z\d]{1,2})\s(\d[a-zA-Z]{2})$" value="BS23 3QG" required>
+						</label>
+					</li>
+				</ul>
+			</fieldset>
+
+			<fieldset>
+				<legend>Non-input elements</legend>
+				<ul>
+					<li>
+						<label>
+							Select
+							<select name="select">
+								<option value="lions">Lions</option>
+								<option value="tigers">Tigers</option>
+								<option value="bears">Bears</option>
+							</select>
+						</label>
+					</li>
+					<li>
+						<label>
+							Select with implicit values
+							<select name="select-with-implicit-values">
+								<option>Jazz</option>
+								<option>Bluegrass</option>
+								<option>Country</option>
+							</select>
+						</label>
+					</li>
+					<li>
+						<label>
+							Select with selected option
+							<select name="select-with-selected-option">
+								<option value="carrots">Carrots</option>
+								<option value="potatoes" selected>Potatoes</option>
+								<option value="turnips">Turnips</option>
+							</select>
+						</label>
+					</li>
+					<li>
+						<label>
+							Select with optgroups
+							<select name="select-with-optgroups">
+								<optgroup label="Animals">
+									<option value="lions">Lions</option>
+									<option value="tigers">Tigers</option>
+									<option value="bears">Bears</option>
+								</optgroup>
+								<optgroup label="Vegetables">
+									<option value="carrots">Carrots</option>
+									<option value="potatoes" selected>Potatoes</option>
+									<option value="turnips">Turnips</option>
+								</optgroup>
+							</select>
+						</label>
+					</li>
+					<li>
+						<label>
+							Multi-select
+							<select name="multi-select[]" multiple>
+								<option value="ford">Ford</option>
+								<option value="mercedes">Mercedes</option>
+								<option value="iveco">Iveco</option>
+							</select>
+						</label>
+					</li>
+					<li>
+						<label>
+							Textarea
+							<textarea name="textarea">
+								This is some multi-line text.
+
+								Thanks!
+							</textarea>
+						</label>
+					</li>
+					<li>
+						<label>
+							Non-form
+							<span data-name="populated-span"></span>
+						</label>
+					</li>
+				</ul>
+			</fieldset>
+
+			<input type="submit" value="Submit">
+
+		</form>
