@@ -26,12 +26,17 @@ $form = $document->find("form");
 
 if(!empty($_POST))
 {
-	$form->populate($_POST);
-	
-	$data = $form->serialize();
-
-	// TODO: Do whatever you need with the validated data
+	if($data = $form->populate($_POST))
+	{
+		// NB: $data is validated and ready for use. You can do what you need, for example, store the data and redirect.
+	}
+	else
+	{
+		// NB: The data was not validated, you can do what you need, for example display $form in the invalid state.
+	}
 }
+
+echo $form->html;
 ```
 
 ## Documentation
