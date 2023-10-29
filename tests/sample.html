@@ -303,18 +303,6 @@
 					</li>
 					<li>
 						<label>
-							Datetime (Local) with min and max
-							<input
-								type="datetime-local"
-								name="datetime-local-with-max"
-								min="2018-06-07T00:00"
-								max="2018-06-14T00:00"
-								value="2018-06-12T19:30"
-							/>
-						</label>
-					</li>
-					<li>
-						<label>
 							Month
 							<input
 								type="month"
@@ -411,6 +399,53 @@
 								<option value="lions">Lions</option>
 								<option value="tigers">Tigers</option>
 								<option value="bears">Bears</option>
+							</select>
+						</label>
+					</li>
+					<li>
+						<label>
+							Select with implicit values
+							<select name="select-with-implicit-values">
+								<option>Jazz</option>
+								<option>Bluegrass</option>
+								<option>Country</option>
+							</select>
+						</label>
+					</li>
+					<li>
+						<label>
+							Select with selected option
+							<select name="select-with-selected-option">
+								<option value="carrots">Carrots</option>
+								<option value="potatoes" selected>Potatoes</option>
+								<option value="turnips">Turnips</option>
+							</select>
+						</label>
+					</li>
+					<li>
+						<label>
+							Select with optgroups
+							<select name="select-with-optgroups">
+								<optgroup label="Animals">
+									<option value="lions">Lions</option>
+									<option value="tigers">Tigers</option>
+									<option value="bears">Bears</option>
+								</optgroup>
+								<optgroup label="Vegetables">
+									<option value="carrots">Carrots</option>
+									<option value="potatoes" selected>Potatoes</option>
+									<option value="turnips">Turnips</option>
+								</optgroup>
+							</select>
+						</label>
+					</li>
+					<li>
+						<label>
+							Multi-select
+							<select name="multi-select[]" multiple>
+								<option value="ford">Ford</option>
+								<option value="mercedes">Mercedes</option>
+								<option value="iveco">Iveco</option>
 							</select>
 						</label>
 					</li>

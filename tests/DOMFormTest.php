@@ -2,11 +2,15 @@
 
 use PHPUnit\Framework\TestCase;
 
+use PerryRylance\DOMDocument\DOMObject;
+
 use PerryRylance\DOMFormDocument;
 use PerryRylance\DOMForm\DOMFormElement;
 use PerryRylance\DOMForm\Exceptions\BadValueException;
 use PerryRylance\DOMForm\Exceptions\CheckboxRequiredException;
+use PerryRylance\DOMForm\Exceptions\DatetimeFormatException;
 use PerryRylance\DOMForm\Exceptions\ElementNotFormException;
+use PerryRylance\DOMForm\Exceptions\InvalidRegexException;
 use PerryRylance\DOMForm\Exceptions\NoElementsToPopulateException;
 use PerryRylance\DOMForm\Exceptions\RadioRequiredException;
 use PerryRylance\DOMForm\Exceptions\ReadonlyException;
@@ -303,66 +307,334 @@ final class DOMFormTest extends TestCase
 			$this->assertEquals('ford', $radio->getAttribute('value'));
 	}
 
-	public function testNumericInputWithMinimum()
+	public function testNumericInputWithMinimum(): void
 	{
 		$this->populateWithRequired([
 			'minimum' => PHP_INT_MAX
 		]);
 	}
 
-	public function testCannotPopulateNumericInputBelowMinimum()
+	public function testCannotPopulateNumericInputBelowMinimum(): void
 	{
 		$this->testThrowsBadValueException([
 			'minimum' => 0
 		]);
 	}
 
-	public function testNumericInputWithMaximum()
+	public function testNumericInputWithMaximum(): void
 	{
 		$this->populateWithRequired([
 			'maximum' => PHP_INT_MIN
 		]);
 	}
 
-	public function testCannotPopulateNumericInputAboveMaximum()
+	public function testCannotPopulateNumericInputAboveMaximum(): void
 	{
 		$this->testThrowsBadValueException([
 			'maximum' => 12345
 		]);
 	}
 
-	public function testCanPopulateInSequenceInteger()
+	public function testCanPopulateInSequenceInteger(): void
 	{
 		$this->populateWithRequired([
 			'stepped-integer' => 6
 		]);
 	}
 
-	public function testCannotPopulateOutOfSequenceInteger()
+	public function testCannotPopulateOutOfSequenceInteger(): void
 	{
 		$this->testThrowsBadValueException([
 			'stepped-integer' => 5
 		]);
 	}
 
-	public function testCanPopulateInSequenceFloat()
+	public function testCanPopulateInSequenceFloat(): void
 	{
 		$this->populateWithRequired([
 			'stepped-float' => 1.8
 		]);
 	}
 
-	public function testCannotPopulateOutOfSequenceFloat()
+	public function testCannotPopulateOutOfSequenceFloat(): void
 	{
 		$this->testThrowsBadValueException([
 			'stepped-float' => 3.1415926
 		]);
 	}
-	
-	// TODO: Datetime inputs
-	// TODO: Pattern matching inputs
-	// TODO: Select and multiple select
-	// TODO: Non-input elements
 
-	// TODO: Arrays?
+	public function testCanPopulateDatetimeLocal(): void
+	{
+		$this->populateWithRequired([
+			'datetime-local' => '2023-11-10T09:00'
+		]);
+
+		$data = $this->getForm()->serialize();
+
+		$this->assertEquals('2023-11-10T09:00', $data['datetime-local']);
+	}
+	
+	public function testCannotPopulateInvalidDatetime(): void
+	{
+		$this->expectException(DatetimeFormatException::class);
+
+		$this->populateWithRequired([
+			'datetime-local' => 'Definitely not a valid datetime'
+		]);
+	}
+
+	public function testCannotPopulateDatetimeBelowMinimum(): void
+	{
+		$this->testThrowsBadValueException([
+			'datetime-local-with-min' => '2018-06-06T00:00'
+		]);
+	}
+
+	public function testCannotPopulateDatetimeAboveMaximum(): void
+	{
+		$this->testThrowsBadValueException([
+			'datetime-local-with-max' => '2018-06-15T00:00'
+		]);
+	}
+
+	public function testCanPopulateMonth(): void
+	{
+		$this->populateWithRequired([
+			'month' => '2023-10'
+		]);
+
+		$data = $this->getForm()->serialize();
+
+		$this->assertEquals('2023-10', $data['month']);
+	}
+
+	public function testCannotPopulateInvalidMonth(): void
+	{
+		$this->expectException(DatetimeFormatException::class);
+
+		$this->populateWithRequired([
+			'month' => 'An invalid month'
+		]);
+	}
+
+	public function testCannotPopulateMonthBelowMinimum(): void
+	{
+		$this->testThrowsBadValueException([
+			'month-with-min' => '2018-02'
+		]);
+	}
+
+	public function testCannotPopulateMonthAboveMaximum(): void
+	{
+		$this->testThrowsBadValueException([
+			'month-with-max' => '2018-08'
+		]);
+	}
+
+	public function testCanPopulateWeek(): void
+	{
+		$this->populateWithRequired([
+			'week' => '2013-W29'
+		]);
+
+		$data = $this->getForm()->serialize();
+
+		$this->assertEquals('2013-W29', $data['week']);
+	}
+
+	public function testCannotPopulateWeekBelowMinimum(): void
+	{
+		$this->testThrowsBadValueException([
+			'week' => '2013-W27'
+		]);
+	}
+
+	public function testCannotPopulateWeekAboveMaximum(): void
+	{
+		$this->testThrowsBadValueException([
+			'week' => '2013-W33'
+		]);
+	}
+
+	public function testCanPopulateTime(): void
+	{
+		$this->populateWithRequired([
+			'time' => '14:00'
+		]);
+	}
+
+	public function testCannotPopulateInvalidTime(): void
+	{
+		$this->expectException(DatetimeFormatException::class);
+
+		$this->populateWithRequired([
+			'time' => 'Invalid'
+		]);
+	}
+
+	public function testCannotPopulateTimeBelowMinimum(): void
+	{
+		$this->testThrowsBadValueException([
+			'time' => '07:00'
+		]);
+	}
+
+	public function testCannotPopulateTimeAboveMaximum(): void
+	{
+		$this->testThrowsBadValueException([
+			'time' => '18:00'
+		]);
+	}
+
+	public function testCanPopulateInputWithPattern(): void
+	{
+		$this->populateWithRequired([
+			'postcode' => 'AA11 1AA'
+		]);
+	}
+
+	public function testCannotPopulateInputNotMatchingPattern(): void
+	{
+		$this->testThrowsBadValueException([
+			'postcode' => 'This doesn\'t match the specified pattern'
+		]);
+	}
+
+	public function testInvalidRegexThrowsException(): void
+	{
+		$form = $this->getForm();
+
+		$input = $form->querySelector("input[name='postcode']");
+		$input->setAttribute('pattern', '[[[Definitely not valid regex/');
+
+		$this->expectException(InvalidRegexException::class);
+		
+		$this->testCanPopulateInputWithPattern();
+	}
+
+	public function testExpectedDefaultSelectOption(): void
+	{
+		$data = $this->getForm()->serialize();
+
+		$this->assertEquals('lions', $data['select']);
+	}
+
+	public function testExpectedDefaultSelectWithImplicitValues(): void
+	{
+		$data = $this->getForm()->serialize();
+
+		$this->assertEquals('Jazz', $data['select-with-implicit-values']);
+	}
+	
+	public function testOptionSelection(): void
+	{
+		$this->populateWithRequired([
+			'select' => 'bears'
+		]);
+
+		$data = $this->getForm()->serialize();
+
+		$this->assertEquals('bears', $data['select']);
+	}
+
+	public function testSelectedOptionExclusivity(): void
+	{
+		$this->populateWithRequired([
+			'select-with-selected-option' => 'turnips'
+		]);
+
+		$options = $this->getForm()->querySelectorAll("select[name='select-with-selected-option'] > options");
+
+		foreach($options as $option)
+		{
+			$value = $option->getAttribute('value');
+
+			if($option->hasAttribute('selected'))
+				$this->assertEquals('turnips', $value);
+			else
+				$this->assertNotEquals('turnips', $value);
+		}
+	}
+
+	// NB: Unsupported in PerryRylance\DOMDocument right now
+	/* public function testOptionSelectionByInnerText(): void
+	{
+
+	} */
+
+	public function testCannotSelectInvalidOption(): void
+	{
+		$this->testThrowsBadValueException([
+			'select' => 'Not a valid option'
+		]);
+	}
+
+	public function testSelectOptionWithinOptgroups(): void
+	{
+		$this->populateWithRequired([
+			'select-with-optgroups' => 'carrots'
+		]);
+	}
+
+	public function testCannotSelectInvalidOptionWithinOptgroups(): void
+	{
+		$this->testThrowsBadValueException([
+			'select-with-optgroups' => 'Not a valid selection'
+		]);
+	}
+
+	public function testMultiSelectEmptyByDefault(): void
+	{
+		$data = $this->getForm()->serialize();
+
+		$this->assertIsArray($data['multi-select[]']);
+		$this->assertEmpty($data['multi-select[]']);
+	}
+
+	public function testSelectMultipleOptions(): void
+	{
+		$this->populateWithRequired([
+			'multi-select[]' => [
+				'ford',
+				'iveco'
+			]
+		]);
+
+		$data = $this->getForm()->serialize();
+
+		$this->assertTrue(
+			$data['multi-select[]'] === ['ford', 'iveco']
+		);
+	}
+
+	public function testCannotPopulateMultiSelectWithInvalidOptions(): void
+	{
+		$this->testThrowsBadValueException([
+			'multi-select[]' => [
+				'not a valid option'
+			]
+		]);
+	}
+
+	public function testTextarea(): void
+	{
+		$this->populateWithRequired([
+			'textarea' => 'modified'
+		]);
+
+		$data = $this->getForm()->serialize();
+
+		$this->assertEquals('modified', $data['textarea']);
+	}
+
+	public function testNonFormElement(): void
+	{
+		$this->populateWithRequired([
+			'populated-span' => 'test'
+		]);
+
+		$span = new DOMObject( $this->getForm()->querySelector("[data-name='populated-span']") );
+
+		$this->assertEquals('test', $span->text());
+	}
 }

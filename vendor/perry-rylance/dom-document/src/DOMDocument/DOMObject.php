@@ -802,6 +802,8 @@ class DOMObject implements \ArrayAccess, \Countable, \Iterator
 						return $el;
 					
 					$option = $set->find('option[value="' . $value . '"]')->first();
+
+					// TODO: Support select by inner text
 					
 					if(!$option)
 						trigger_error('Option with value "' . $value . '" not found in "' . ($el->getAttribute('name')) . '"', E_USER_WARNING);

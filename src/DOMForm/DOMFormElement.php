@@ -2,11 +2,16 @@
 
 namespace PerryRylance\DOMForm;
 
+use DateTime;
+use Exception;
+
 use PerryRylance\DOMDocument\DOMElement;
 use PerryRylance\DOMDocument\DOMObject;
 use PerryRylance\DOMForm\Exceptions\BadValueException;
 use PerryRylance\DOMForm\Exceptions\CheckboxRequiredException;
+use PerryRylance\DOMForm\Exceptions\DatetimeFormatException;
 use PerryRylance\DOMForm\Exceptions\ElementNotFormException;
+use PerryRylance\DOMForm\Exceptions\InvalidRegexException;
 use PerryRylance\DOMForm\Exceptions\NoElementsToPopulateException;
 use PerryRylance\DOMForm\Exceptions\RadioRequiredException;
 use PerryRylance\DOMForm\Exceptions\ValueRequiredException;
@@ -14,10 +19,60 @@ use PerryRylance\DOMForm\Exceptions\ReadonlyException;
 
 class DOMFormElement extends DOMElement
 {
+	const DATETIME_LOCAL_FORMAT = 'Y-m-d\TH:i';
+	const MONTH_FORMAT = 'Y-m';
+	const WEEK_FORMAT = 'Y-\WW';
+	const TIME_FORMAT = 'H:i';
+
 	protected function assertIsForm(): void
 	{
 		if(!preg_match('/^form$/i', $this->nodeName))
 			throw new ElementNotFormException("Failed to assert element is a form");
+	}
+
+	protected function parseDatetime(string $raw, string $type)
+	{
+		switch(strtolower($type))
+		{
+			case "datetime-local":
+				$format = static::DATETIME_LOCAL_FORMAT;
+				break;
+			
+			case "month":
+				$format = static::MONTH_FORMAT;
+				break;
+			
+			case "time":
+				$format = static::TIME_FORMAT;
+				break;
+
+			case "week":
+				break;
+
+			default:
+				throw new Exception("Unknown datetime element type");
+		}
+
+		if($type === "week")
+		{
+			// NB: Looks like PHP supports writing weeks, but doesn't support parsing weeks. So we have to shim this in.
+			if(!preg_match('/^(\d{4})-W(\d{1,2})$/', $raw, $m))
+				throw new DatetimeFormatException("Value does not match expected format");
+			
+			$year = (int)$m[1];
+			$week = (int)$m[2];
+
+			$result = new DateTime();
+			$result->setTimestamp(strtotime("First Monday of $year"));
+			$result->modify("+$week week");
+		}
+		else
+			$result = DateTime::createFromFormat($format, $raw);
+
+		if($result === false)
+			throw new DatetimeFormatException("Value does not match expected format");
+
+		return $result;
 	}
 
 	public function getInputs(?string $name = null): DOMObject
@@ -35,6 +90,9 @@ class DOMFormElement extends DOMElement
 	public function populate(iterable $data): void
 	{
 		$this->assertIsForm();
+
+		if(is_array($data) && array_is_list($data))
+			throw new Exception('Expected associative array');
 
 		$self = new DOMObject($this);
 
@@ -54,12 +112,28 @@ class DOMFormElement extends DOMElement
 			foreach($elements as $target)
 			{
 				$element = $target[0];
+				$type = strtolower($target->attr("type") ?? "text");
+				$name = strtolower($element->nodeName);
 
-				switch(strtolower($element->nodeName))
+				switch($name)
 				{
 					case "input":
 
-						switch(strtolower($target->attr("type") ?? "text"))
+						if($element->hasAttribute('pattern'))
+						{
+							$pattern	= $element->getAttribute('pattern');
+							
+							// NB: Suppress the possible warning, since we catch that ourselves just under here
+							$result		= @preg_match("/$pattern/", $value);
+
+							if($result === false)
+								throw new InvalidRegexException();
+							
+							if($result === 0)
+								throw new BadValueException("Value does not match specified pattern");
+						}
+
+						switch($type)
 						{
 							case "url":
 
@@ -126,6 +200,29 @@ class DOMFormElement extends DOMElement
 									throw new BadValueException("Not a valid color");
 
 								break;
+							
+							case "datetime-local":
+							case "month":
+							case "week":
+							case "time":
+
+								$datetime = $this->parseDatetime($value, $type);
+
+								if($element->hasAttribute('min'))
+								{
+									$min = $this->parseDatetime($element->getAttribute('min'), $type);
+
+									if($datetime < $min)
+										throw new BadValueException("Below minimum");
+								}
+
+								if($element->hasAttribute('max'))
+								{
+									$max = $this->parseDatetime($element->getAttribute('max'), $type);
+
+									if($datetime > $max)
+										throw new BadValueException("Above maximum");
+								}
 
 							default:
 
@@ -145,6 +242,47 @@ class DOMFormElement extends DOMElement
 						
 						if($element->hasAttribute("disabled"))
 							throw new ReadonlyException("Field is disabled");
+						
+						if($name === 'select')
+						{
+							$isMultiSelect = $element->hasAttribute('multiple');
+
+							if($isMultiSelect)
+							{
+								if(!preg_match('/\[\]$/', $element->getAttribute('name')))
+									trigger_error('Expected multi-select to have array brackets at end of name', E_USER_WARNING);
+
+								if(!is_array($value))
+									throw new BadValueException('Expected an array for multi-select');
+								
+								if(!array_is_list($value))
+									throw new BadValueException("Expected an indexed array for multi-select");
+								
+								// NB: Explicitly unselect any initially selected values, see https://github.com/PerryRylance/DOMDocument/issues/63
+								$target
+									->find("option[selected]")
+									->removeAttr("selected");
+
+								$values = $value;
+							}
+							else
+								$values = [$value];
+
+							foreach($values as $unescaped)
+							{
+								$escaped = addslashes($unescaped);
+								$option = $target->find("option[value='$escaped']");
+
+								if(!count($option))
+									throw new BadValueException("Specified selection is invalid");
+
+								if($isMultiSelect)
+									$option->attr("selected", "selected");
+							}
+							
+							if($isMultiSelect)
+								break; // NB: We explicitly set these already, so we can bail here. See https://github.com/PerryRylance/DOMDocument/issues/63
+						}
 
 						$target->val($value);
 
@@ -217,18 +355,57 @@ class DOMFormElement extends DOMElement
 			$source = new DOMObject($element);
 			$name	= $source->attr("name");
 
-			switch($source->attr("type"))
+			switch(strtolower($element->nodeName))
 			{
-				case "checkbox":
-				case "radio":
+				case "select":
 
-					if(!$source->is("[checked]"))
-						continue 2; // NB: Omit unchecked checkboxes and ignore unchecked radios
+					$selected		= $source->find("option[selected]");
+
+					if($element->hasAttribute('multiple'))
+					{
+						if(!preg_match('/\[\]$/', $name))
+							trigger_error('Expected multi-select to have array brackets at end of name', E_USER_WARNING);
+						else
+						{
+							$result[$name] = array_map(function($element) {
+								return $element->getAttribute('value');
+							}, $selected->toArray());
+
+							break;
+						}
+					}
+
+					$all			= $source->find("option");
+
+					if(count($selected))
+						$options	= $selected;
+					else
+						$options	= $all;
+					
+					if(!count($options))
+						break; // NB: Don't crash when there are no options
+
+					$result[$name] = $options[0]->hasAttribute('value') ? $options[0]->getAttribute('value') : $options[0]->nodeValue;
+
+					break;
+
+				default:
+
+					switch($source->attr("type"))
+					{
+						case "checkbox":
+						case "radio":
+
+							if(!$source->is("[checked]"))
+								break 2; // NB: Omit unchecked checkboxes and ignore unchecked radios
+
+							break;
+					}
+
+					$result[$name] = $source->val();
 
 					break;
 			}
-
-			$result[$name] = $source->val();
 		}
 
 		return $result;

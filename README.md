@@ -3,6 +3,8 @@ A DOMDocument based form library, useful for quickly populating HTML forms, serv
 
 Designed for use with [`PerryRylance\DOMDocument`](https://packagist.org/packages/perry-rylance/dom-document).
 
+Earlier versions of `PerryRylance\DOMDocument` had features for populating forms and getting data back, these were dropped in 2.* as that libraries sole focus became jQuery-like PHP DOM manipulation and processing forms was deemed out of scope. This library gives you back this functionality with more standardised behaviour when compared to how the browser's client side validation works.
+
 ## Requirements
 - PHP >= 7.4.0
 - Composer
