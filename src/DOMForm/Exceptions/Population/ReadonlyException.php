@@ -1,5 +1,5 @@
 <?php
 
-namespace PerryRylance\DOMForm\Exceptions;
+namespace PerryRylance\DOMForm\Exceptions\Population;
 
 class ReadonlyException extends PopulationException {}

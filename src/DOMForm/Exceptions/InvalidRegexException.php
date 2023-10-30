@@ -2,4 +2,6 @@
 
 namespace PerryRylance\DOMForm\Exceptions;
 
-class InvalidRegexException extends PopulationException {}
+use Exception;
+
+class InvalidRegexException extends Exception {}
