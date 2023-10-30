@@ -4,27 +4,36 @@ require_once __DIR__ . '/DOMFormBaseTestCase.php';
 
 use PerryRylance\DOMDocument\DOMObject;
 
-use PerryRylance\DOMForm\DOMFormElement;
-use PerryRylance\DOMForm\Exceptions\BadValueException;
-use PerryRylance\DOMForm\Exceptions\CheckboxRequiredException;
-use PerryRylance\DOMForm\Exceptions\DatetimeFormatException;
+use PerryRylance\DOMForm;
 use PerryRylance\DOMForm\Exceptions\ElementNotFormException;
 use PerryRylance\DOMForm\Exceptions\InvalidRegexException;
-use PerryRylance\DOMForm\Exceptions\NoElementsToPopulateException;
-use PerryRylance\DOMForm\Exceptions\RadioRequiredException;
-use PerryRylance\DOMForm\Exceptions\ReadonlyException;
-use PerryRylance\DOMForm\Exceptions\ValueRequiredException;
+use PerryRylance\DOMForm\Exceptions\Population\BadValueException;
+use PerryRylance\DOMForm\Exceptions\Population\CheckboxRequiredException;
+use PerryRylance\DOMForm\Exceptions\Population\DatetimeFormatException;
+use PerryRylance\DOMForm\Exceptions\Population\NoElementsToPopulateException;
+use PerryRylance\DOMForm\Exceptions\Population\RadioRequiredException;
+use PerryRylance\DOMForm\Exceptions\Population\ReadonlyException;
+use PerryRylance\DOMForm\Exceptions\Population\ValueRequiredException;
 
 final class DOMFormTest extends DOMFormBaseTestCase
 {
-	public function testFormIsDomFormElement(): void
+	private function testThrowsBadValueException(array $data): void
 	{
-		$form = $this->getForm();
+		$this->expectException(BadValueException::class);
 
-		$this->assertInstanceOf(DOMFormElement::class, $form);
+		$this->populateWithRequired($data);
 	}
 
-	public function testCannotPopulateNonFormElement(): void
+	private function testThrowsReadonlyException(array $data): void
+	{
+		$this->expectException(ReadonlyException::class);
+
+		$form = $this->getForm();
+
+		$form->populate($data);
+	}
+
+	public function testCannotInstantiateOnNonFormElement(): void
 	{
 		$this->expectException(ElementNotFormException::class);
 
@@ -32,7 +41,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 		$this->assertNotEmpty($labels);
 
-		$labels[0]->populate([]);
+		new DOMForm($labels[0]);
 	}
 
 	public function testCannotPopulateNonExistantField(): void
@@ -49,10 +58,6 @@ final class DOMFormTest extends DOMFormBaseTestCase
 		$this->populateWithRequired([
 			'animal' => 'Lion'
 		]);
-
-		$data = $this->getForm()->serialize();
-
-		$this->assertEquals('Lion', $data['animal']);
 	}
 
 	public function testCannotMakeRequiredInputEmpty(): void
@@ -62,15 +67,6 @@ final class DOMFormTest extends DOMFormBaseTestCase
 		$this->populateWithRequired([
 			'required' => ''
 		]);
-	}
-
-	private function testThrowsReadonlyException(array $data): void
-	{
-		$this->expectException(ReadonlyException::class);
-
-		$form = $this->getForm();
-
-		$form->populate($data);
 	}
 
 	public function testCannotAlterReadonlyInput(): void
@@ -92,17 +88,6 @@ final class DOMFormTest extends DOMFormBaseTestCase
 		$this->populateWithRequired([
 			'hidden' => 'test'
 		]);
-
-		$data = $this->getForm()->serialize();
-
-		$this->assertEquals('test', $data['hidden']);
-	}
-
-	private function testThrowsBadValueException(array $data): void
-	{
-		$this->expectException(BadValueException::class);
-
-		$this->populateWithRequired($data);
 	}
 
 	public function testCannotPopulateWithInvalidUrl(): void
@@ -240,10 +225,6 @@ final class DOMFormTest extends DOMFormBaseTestCase
 		$this->populateWithRequired([
 			'favourite-animal' => 'tigers'
 		]);
-
-		$data = $this->getForm()->serialize();
-
-		$this->assertEquals('tigers', $data['favourite-animal']);
 	}
 
 	public function testCannotSubmitUncheckedRequiredRadio(): void
@@ -263,7 +244,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 			'favourite-car' => 'ford'
 		]);
 
-		$radios = $this->getForm()->querySelectorAll("radio[name='favourite-car'][checked]");
+		$radios = $this->getForm()->element->querySelectorAll("radio[name='favourite-car'][checked]");
 
 		foreach($radios as $radio)
 			$this->assertEquals('ford', $radio->getAttribute('value'));
@@ -330,10 +311,6 @@ final class DOMFormTest extends DOMFormBaseTestCase
 		$this->populateWithRequired([
 			'datetime-local' => '2023-11-10T09:00'
 		]);
-
-		$data = $this->getForm()->serialize();
-
-		$this->assertEquals('2023-11-10T09:00', $data['datetime-local']);
 	}
 	
 	public function testCannotPopulateInvalidDatetime(): void
@@ -364,10 +341,6 @@ final class DOMFormTest extends DOMFormBaseTestCase
 		$this->populateWithRequired([
 			'month' => '2023-10'
 		]);
-
-		$data = $this->getForm()->serialize();
-
-		$this->assertEquals('2023-10', $data['month']);
 	}
 
 	public function testCannotPopulateInvalidMonth(): void
@@ -398,10 +371,6 @@ final class DOMFormTest extends DOMFormBaseTestCase
 		$this->populateWithRequired([
 			'week' => '2013-W29'
 		]);
-
-		$data = $this->getForm()->serialize();
-
-		$this->assertEquals('2013-W29', $data['week']);
 	}
 
 	public function testCannotPopulateInvalidWeek(): void
@@ -475,7 +444,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 	{
 		$form = $this->getForm();
 
-		$input = $form->querySelector("input[name='postcode']");
+		$input = $form->element->querySelector("input[name='postcode']");
 		$input->setAttribute('pattern', '[[[Definitely not valid regex/');
 
 		$this->expectException(InvalidRegexException::class);
@@ -502,10 +471,6 @@ final class DOMFormTest extends DOMFormBaseTestCase
 		$this->populateWithRequired([
 			'select' => 'bears'
 		]);
-
-		$data = $this->getForm()->serialize();
-
-		$this->assertEquals('bears', $data['select']);
 	}
 
 	public function testSelectedOptionExclusivity(): void
@@ -514,7 +479,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 			'select-with-selected-option' => 'turnips'
 		]);
 
-		$options = $this->getForm()->querySelectorAll("select[name='select-with-selected-option'] > options");
+		$options = $this->getForm()->element->querySelectorAll("select[name='select-with-selected-option'] > options");
 
 		foreach($options as $option)
 		{
@@ -592,19 +557,15 @@ final class DOMFormTest extends DOMFormBaseTestCase
 		$this->populateWithRequired([
 			'textarea' => 'modified'
 		]);
-
-		$data = $this->getForm()->serialize();
-
-		$this->assertEquals('modified', $data['textarea']);
 	}
 
 	public function testNonFormElement(): void
 	{
 		$this->populateWithRequired([
 			'populated-span' => 'test'
-		]);
+		], false);
 
-		$span = new DOMObject( $this->getForm()->querySelector("[data-name='populated-span']") );
+		$span = new DOMObject( $this->getForm()->element->querySelector("[data-name='populated-span']") );
 
 		$this->assertEquals('test', $span->text());
 	}

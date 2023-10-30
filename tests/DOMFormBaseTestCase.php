@@ -2,30 +2,30 @@
 
 use PHPUnit\Framework\TestCase;
 
-use PerryRylance\DOMFormDocument;
-use PerryRylance\DOMForm\DOMFormElement;
-use PerryRylance\DOMForm\Handlers\DOMFormPopulateErrorHandler;
+use PerryRylance\DOMDocument;
+use PerryRylance\DOMForm;
 
 class DOMFormBaseTestCase extends TestCase
 {
-	protected DOMFormDocument $document;
+	protected DOMDocument $document;
+	protected DOMForm $form;
 
-	public static function setUpBeforeClass(): void
+	protected function instantiateForm(): void
 	{
-		DOMFormElement::$defaultPopulateErrorHandler = new DOMFormPopulateErrorHandler();
+		$this->form = new DOMForm( $this->document->find("form") );
 	}
 
 	protected function setUp(): void
 	{
-		$this->document = new DOMFormDocument();
+		$this->document = new DOMDocument();
 		$this->document->load(__DIR__ . "/sample.html");
+
+		$this->instantiateForm();
 	}
 
-	protected function getForm(): DOMFormElement
+	protected function getForm(): DOMForm
 	{
-		$this->assertNotEmpty($this->document->forms);
-
-		return $this->document->forms[0];
+		return $this->form;
 	}
 
 	protected function getRequiredFields(): array
@@ -33,18 +33,22 @@ class DOMFormBaseTestCase extends TestCase
 		$requirements	= [];
 		$form			= $this->getForm();
 
-		foreach($form->querySelectorAll("[name][required]") as $element)
+		foreach($form->element->querySelectorAll("[name][required]") as $element)
 			$requirements[ $element->getAttribute('name') ] = $element->getAttribute('value');
 		
 		return $requirements;
 	}
 
 	// NB: Normally we wouldn't partially populate a form, but we need to in testing. Use this function to include the required fields that we would expect when processing a full submission - eg POST from the browser.
-	protected function populateWithRequired(?array $input = []): void
+	protected function populateWithRequired(?array $input = [], bool $readback = true): void
 	{
 		$requirements	= $this->getRequiredFields();
 		$data			= [...$requirements, ...$input];
 
-		$this->getForm()->populate($data);
+		$result			= $this->getForm()->populate($data);
+
+		if($readback)
+			foreach(array_keys($input) as $key)
+				$this->assertEquals($result[$key], $input[$key]);
 	}
 }

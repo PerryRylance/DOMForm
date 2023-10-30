@@ -2,20 +2,32 @@
 
 require_once __DIR__ . '/DOMFormBaseTestCase.php';
 
-use PerryRylance\DOMForm\Handlers\DOMFormPopulateDisplayHtmlErrorHandler;
-use PerryRylance\DOMForm\DOMFormElement;
+use PerryRylance\DOMForm;
+use PerryRylance\DOMForm\Exceptions\Handlers\DisplayHtml;
 
 class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 {
-	public static function setUpBeforeClass(): void
+	protected function instantiateForm(): void
 	{
-		DOMFormElement::$defaultPopulateErrorHandler = new DOMFormPopulateDisplayHtmlErrorHandler();
+		$this->form = new DOMForm(
+			$this->document->find("form"),
+			new DisplayHtml()
+		);
+	}
+
+	protected function populateWithRequired(?array $input = [], bool $readback = true): void
+	{
+		// NB: Don't readback by default. We are testing specifically for cases where errors are displayed, so it's expected that DOMForm::serialize will return false
+		Parent::populateWithRequired($input, false);
 	}
 
 	protected function assertErrorAfter(string $name): void
 	{
 		$escaped	= addslashes($name);
-		$span		= $this->getForm()->querySelector("[name='$escaped'] ~ span.error");
+		$span		= $this
+			->getForm()
+			->element
+			->querySelector("[name='$escaped'] ~ span.error");
 
 		$this->assertNotNull($span);
 	}
@@ -112,7 +124,9 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 		$form->populate($fields);
 
-		$span = $form->querySelector("[name='favourite-car'] ~ span.error");
+		$span = $form
+			->element
+			->querySelector("[name='favourite-car'] ~ span.error");
 
 		$this->assertNotNull($span);
 	}
