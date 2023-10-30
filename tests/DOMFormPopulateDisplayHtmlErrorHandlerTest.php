@@ -16,10 +16,10 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 		);
 	}
 
-	protected function submitWithRequired(?array $input = [], bool $readback = true): void
+	protected function submitWithRequired(?array $input = [], bool $readback = true): array | false
 	{
 		// NB: Don't readback by default. We are testing specifically for cases where errors are displayed, so it's expected that DOMForm::serialize will return false
-		Parent::submitWithRequired($input, false);
+		return Parent::submitWithRequired($input, false);
 	}
 
 	protected function assertErrorAfter(string $name): void

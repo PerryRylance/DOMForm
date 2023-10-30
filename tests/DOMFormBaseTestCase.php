@@ -40,7 +40,7 @@ class DOMFormBaseTestCase extends TestCase
 	}
 
 	// NB: Normally we wouldn't partially populate a form, but we need to in testing. Use this function to include the required fields that we would expect when processing a full submission - eg POST from the browser.
-	protected function submitWithRequired(?array $input = [], bool $readback = true): void
+	protected function submitWithRequired(?array $input = [], bool $readback = true): array | false
 	{
 		$requirements	= $this->getRequiredFields();
 		$data			= [...$requirements, ...$input];
@@ -49,5 +49,7 @@ class DOMFormBaseTestCase extends TestCase
 		if($readback)
 			foreach(array_keys($input) as $key)
 				$this->assertEquals($result[$key], $input[$key]);
+
+		return $result;
 	}
 }

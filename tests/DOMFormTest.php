@@ -578,4 +578,11 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 		$this->assertEquals($this->form->serialize(), $form->serialize());
 	}
+
+	public function testSubmitReturnsData(): void
+	{
+		$result = $this->submitWithRequired();
+
+		$this->assertIsArray($result);
+	}
 }
