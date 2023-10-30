@@ -11,14 +11,15 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 	{
 		$this->form = new DOMForm(
 			$this->document->find("form"),
+			null,
 			new DisplayHtml()
 		);
 	}
 
-	protected function populateWithRequired(?array $input = [], bool $readback = true): void
+	protected function submitWithRequired(?array $input = [], bool $readback = true): void
 	{
 		// NB: Don't readback by default. We are testing specifically for cases where errors are displayed, so it's expected that DOMForm::serialize will return false
-		Parent::populateWithRequired($input, false);
+		Parent::submitWithRequired($input, false);
 	}
 
 	protected function assertErrorAfter(string $name): void
@@ -34,7 +35,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysRequiredErrorMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'required' => ''
 		]);
 		
@@ -43,7 +44,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysBadUrlMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'url' => '*** Definitely not a valid URL ***'
 		]);
 
@@ -52,7 +53,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysInvalidEmailMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'email' => '*** Definitely not a valid email address ***'
 		]);
 
@@ -61,7 +62,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysInvalidMultipleEmailMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'bcc' => 'valid@email.com,*** Definitely not a valid email address ***'
 		]);
 
@@ -70,7 +71,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysInvalidNumberMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'numeric' => 'string'
 		]);
 
@@ -79,7 +80,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysRangeUnderMinimumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'range' => PHP_INT_MIN
 		]);
 
@@ -88,7 +89,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysRangeUnderMaximumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'range' => PHP_INT_MAX
 		]);
 
@@ -97,7 +98,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysInvalidColorMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'color' => 'invalid color'
 		]);
 
@@ -110,7 +111,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 		unset($fields['required-checkbox']);
 
-		$this->getForm()->populate($fields);
+		$this->form->submit($fields);
 
 		$this->assertErrorAfter('required-checkbox');
 	}
@@ -122,7 +123,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 		unset($fields['favourite-car']);
 
-		$form->populate($fields);
+		$form->submit($fields);
 
 		$span = $form
 			->element
@@ -133,7 +134,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysBelowMinimumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'minimum' => 0
 		]);
 
@@ -142,7 +143,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysAboveMaximumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'maximum' => 12345
 		]);
 
@@ -151,7 +152,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysOutOfSequenceMessageForInteger(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'stepped-integer' => 5
 		]);
 
@@ -160,7 +161,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysOutOfSequenceMessageForFloat(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'stepped-float' => 3.1415926
 		]);
 		
@@ -169,7 +170,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysInvalidDatetimeMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'datetime-local' => 'Definitely not a valid datetime'
 		]);
 
@@ -178,7 +179,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysDatetimeBelowMinimumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'datetime-local-with-min' => '2018-06-06T00:00'
 		]);
 
@@ -187,7 +188,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysDatetimeAboveMaximumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'datetime-local-with-max' => '2018-06-15T00:00'
 		]);
 
@@ -196,7 +197,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysInvalidMonthMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'month' => 'An invalid month'
 		]);
 
@@ -205,7 +206,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysMonthBelowMinimumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'month-with-min' => '2018-02'
 		]);
 
@@ -214,7 +215,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysMonthAboveMaximumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'month-with-max' => '2018-08'
 		]);
 		
@@ -223,7 +224,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysInvalidWeekMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'week' => 'Definitely an invalid week'
 		]);
 
@@ -232,7 +233,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysWeekBelowMinimumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'week' => '2013-W27'
 		]);
 
@@ -241,7 +242,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysWeekAboveMaximumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'week' => '2013-W33'
 		]);
 
@@ -250,7 +251,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysInvalidTimeMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'time' => 'Invalid'
 		]);
 
@@ -259,7 +260,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysTimeBelowMinimumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'time' => '07:00'
 		]);
 
@@ -268,7 +269,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysTimeAboveMaximumMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'time' => '18:00'
 		]);
 
@@ -277,7 +278,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysPatternDoesNotMatchMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'postcode' => 'This doesn\'t match the specified pattern'
 		]);
 
@@ -286,7 +287,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysInvalidOptionsMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'select' => 'Not a valid option'
 		]);
 
@@ -295,7 +296,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 
 	public function testDisplaysInvalidMultiSelectOptionMessage(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'multi-select[]' => [
 				'not a valid option'
 			]

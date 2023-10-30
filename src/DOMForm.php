@@ -16,24 +16,28 @@ use PerryRylance\DOMForm\Exceptions\Population\PopulationException;
 use PerryRylance\DOMForm\Exceptions\Population\BadValueException;
 use PerryRylance\DOMForm\Exceptions\Population\CheckboxRequiredException;
 use PerryRylance\DOMForm\Exceptions\Population\DatetimeFormatException;
+use PerryRylance\DOMForm\Exceptions\Population\DisabledException;
 use PerryRylance\DOMForm\Exceptions\Population\NoElementsToPopulateException;
 use PerryRylance\DOMForm\Exceptions\Population\RadioRequiredException;
 use PerryRylance\DOMForm\Exceptions\Population\ValueRequiredException;
 use PerryRylance\DOMForm\Exceptions\Population\ReadonlyException;
+use PerryRylance\DOMForm\PopulateOptions;
 
 class DOMForm
 {
-	const DATETIME_LOCAL_FORMAT = 'Y-m-d\TH:i';
-	const MONTH_FORMAT = 'Y-m';
-	const WEEK_FORMAT = 'Y-\WW';
-	const TIME_FORMAT = 'H:i';
+	const FORMAT_DATETIME_LOCAL = 'Y-m-d\TH:i';
+	const FORMAT_MONTH = 'Y-m';
+	const FORMAT_WEEK = 'Y-\WW';
+	const FORMAT_TIME = 'H:i';
 
 	public readonly DOMElement $element;
 
 	private array $errors;
+	private PopulateOptions $populateOptions;
 
 	public function __construct(
 		DOMObject | DOMElement $target,
+		?array $initialState = null,
 		private ?Handler $errorHandler = null
 	)
 	{
@@ -54,6 +58,17 @@ class DOMForm
 		
 		if(is_null($this->errorHandler))
 			$this->errorHandler = new ThrowException();
+		
+		if(!is_null($initialState))
+		{
+			// NB: By default, ignore read only and disabled exceptions. This allows us to prepopulate those fields.
+			$this->populate($initialState, new PopulateOptions([
+				'ignoreExceptions' => [
+					ReadonlyException::class,
+					DisabledException::class
+				]
+			]));
+		}
 	}
 
 	private function resetPopulationErrors(): void
@@ -63,6 +78,9 @@ class DOMForm
 
 	private function handlePopulationError(PopulationException $exception): void
 	{
+		if(array_search(get_class($exception), $this->populateOptions->ignoreExceptions) !== false)
+			return; // NB: Do nothing, ignore the exception
+
 		$this->errorHandler->handle($exception);
 		$this->errors []= $exception;
 	}
@@ -74,15 +92,15 @@ class DOMForm
 		switch(strtolower($type))
 		{
 			case "datetime-local":
-				$format = static::DATETIME_LOCAL_FORMAT;
+				$format = static::FORMAT_DATETIME_LOCAL;
 				break;
 			
 			case "month":
-				$format = static::MONTH_FORMAT;
+				$format = static::FORMAT_MONTH;
 				break;
 			
 			case "time":
-				$format = static::TIME_FORMAT;
+				$format = static::FORMAT_TIME;
 				break;
 
 			case "week":
@@ -302,9 +320,26 @@ class DOMForm
 			$option = $target->find("option[value='$escaped']");
 
 			if(!count($option))
-				$this->handlePopulationError(new BadValueException($element, "Specified selection is invalid"));
+			{
+				$option = null;
 
-			$option->attr("selected", "selected");
+				foreach($target->find("option") as $el)
+				{
+					$el = (new DOMObject($el));
+
+					if($el->text() == $unescaped)
+					{
+						$option = $el;
+						break;
+					}
+				}
+
+				if(!$option)
+					$this->handlePopulationError(new BadValueException($element, "Specified selection is invalid"));
+			}
+
+			if($option)
+				$option->attr("selected", "selected");
 		}
 	}
 
@@ -360,6 +395,11 @@ class DOMForm
 		}
 	}
 
+	public function submit(array $data)
+	{
+		return $this->populate($data);
+	}
+
 	/**
 	 * This method takes data as an input and attempts to populate the form from the input, validating using HTML5's validation attributes. If validation passes, this method returns the validated data. If any validation fails, this method returns false.
 	 * 
@@ -368,9 +408,11 @@ class DOMForm
 	 * 
 	 * @return array|false The validated, serialized data on success, or false if validation failed.
 	 */
-	public function populate(array $data): array | false
+	private function populate(array $data, ?PopulateOptions $options = null): array | false
 	{
 		$this->resetPopulationErrors();
+
+		$this->populateOptions = $options ?? new PopulateOptions();
 
 		if(array_is_list($data))
 			throw new Exception('Expected associative array');

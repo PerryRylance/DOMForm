@@ -21,16 +21,14 @@ final class DOMFormTest extends DOMFormBaseTestCase
 	{
 		$this->expectException(BadValueException::class);
 
-		$this->populateWithRequired($data);
+		$this->submitWithRequired($data);
 	}
 
 	private function testThrowsReadonlyException(array $data): void
 	{
 		$this->expectException(ReadonlyException::class);
 
-		$form = $this->getForm();
-
-		$form->populate($data);
+		$this->form->submit($data);
 	}
 
 	public function testCannotInstantiateOnNonFormElement(): void
@@ -44,18 +42,18 @@ final class DOMFormTest extends DOMFormBaseTestCase
 		new DOMForm($labels[0]);
 	}
 
-	public function testCannotPopulateNonExistantField(): void
+	public function testCannotSubmitNonExistantField(): void
 	{
 		$this->expectException(NoElementsToPopulateException::class);
 
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'input-which-does-not-exist' => 123
 		]);
 	}
 
 	public function testPopulateNamedInput(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'animal' => 'Lion'
 		]);
 	}
@@ -64,7 +62,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 	{
 		$this->expectException(ValueRequiredException::class);
 
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'required' => ''
 		]);
 	}
@@ -85,7 +83,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testReadWriteHiddenElement(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'hidden' => 'test'
 		]);
 	}
@@ -99,7 +97,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateWithValidUrl(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'url' => 'https://youtube.com'
 		]);
 	}
@@ -113,7 +111,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateWithValidEmail(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'email' => 'test@perryrylance.com'
 		]);
 	}
@@ -127,7 +125,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateWithMultipleValidEmails(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'bcc' => 'test@perryrylance.com,valid@email.com'
 		]);
 	}
@@ -141,7 +139,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateWithValidNumber(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'numeric' => 64
 		]);
 	}
@@ -162,7 +160,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateRange(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'range' => 100000
 		]);
 	}
@@ -176,18 +174,18 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateValidColor(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'color' => '#00ff00'
 		]);
 	}
 
 	public function testCanCheckCheckbox(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'checkbox' => 'checked'
 		]);
 		
-		$data = $this->getForm()->serialize();
+		$data = $this->form->serialize();
 
 		$this->assertTrue(isset($data['checkbox']));
 		$this->assertEquals('checked', $data['checkbox']);
@@ -195,9 +193,9 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanUncheckCheckbox(): void
 	{
-		$this->populateWithRequired();
+		$this->submitWithRequired();
 
-		$data = $this->getForm()->serialize();
+		$data = $this->form->serialize();
 
 		$this->assertTrue(!isset($data['checkbox']));
 	}
@@ -210,19 +208,19 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 		unset($fields['required-checkbox']);
 
-		$this->getForm()->populate($fields);
+		$this->form->submit($fields);
 	}
 
 	public function testDefaultCheckedRadioHasExpectedValue(): void
 	{
-		$data = $this->getForm()->serialize();
+		$data = $this->form->serialize();
 
 		$this->assertEquals('mercedes', $data['favourite-car']);
 	}
 
 	public function testCanCheckRadio(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'favourite-animal' => 'tigers'
 		]);
 	}
@@ -235,16 +233,16 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 		unset($fields['favourite-car']);
 
-		$this->getForm()->populate($fields);
+		$this->form->submit($fields);
 	}
 
 	public function testRadioUncheckedAfterValueUpdated(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'favourite-car' => 'ford'
 		]);
 
-		$radios = $this->getForm()->element->querySelectorAll("radio[name='favourite-car'][checked]");
+		$radios = $this->form->element->querySelectorAll("radio[name='favourite-car'][checked]");
 
 		foreach($radios as $radio)
 			$this->assertEquals('ford', $radio->getAttribute('value'));
@@ -252,7 +250,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testNumericInputWithMinimum(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'minimum' => PHP_INT_MAX
 		]);
 	}
@@ -266,7 +264,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testNumericInputWithMaximum(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'maximum' => PHP_INT_MIN
 		]);
 	}
@@ -280,7 +278,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateInSequenceInteger(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'stepped-integer' => 6
 		]);
 	}
@@ -294,7 +292,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateInSequenceFloat(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'stepped-float' => 1.8
 		]);
 	}
@@ -308,7 +306,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateDatetimeLocal(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'datetime-local' => '2023-11-10T09:00'
 		]);
 	}
@@ -317,7 +315,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 	{
 		$this->expectException(DatetimeFormatException::class);
 
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'datetime-local' => 'Definitely not a valid datetime'
 		]);
 	}
@@ -338,7 +336,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateMonth(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'month' => '2023-10'
 		]);
 	}
@@ -347,7 +345,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 	{
 		$this->expectException(DatetimeFormatException::class);
 
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'month' => 'An invalid month'
 		]);
 	}
@@ -368,7 +366,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateWeek(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'week' => '2013-W29'
 		]);
 	}
@@ -377,7 +375,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 	{
 		$this->expectException(DatetimeFormatException::class);
 
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'week' => 'Definitely an invalid week'
 		]);
 	}
@@ -398,7 +396,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateTime(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'time' => '14:00'
 		]);
 	}
@@ -407,7 +405,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 	{
 		$this->expectException(DatetimeFormatException::class);
 
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'time' => 'Invalid'
 		]);
 	}
@@ -428,7 +426,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCanPopulateInputWithPattern(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'postcode' => 'AA11 1AA'
 		]);
 	}
@@ -442,7 +440,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testInvalidRegexThrowsException(): void
 	{
-		$form = $this->getForm();
+		$form = $this->form;
 
 		$input = $form->element->querySelector("input[name='postcode']");
 		$input->setAttribute('pattern', '[[[Definitely not valid regex/');
@@ -454,32 +452,35 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testExpectedDefaultSelectOption(): void
 	{
-		$data = $this->getForm()->serialize();
+		$data = $this->form->serialize();
 
 		$this->assertEquals('lions', $data['select']);
 	}
 
 	public function testExpectedDefaultSelectWithImplicitValues(): void
 	{
-		$data = $this->getForm()->serialize();
+		$data = $this->form->serialize();
 
 		$this->assertEquals('Jazz', $data['select-with-implicit-values']);
 	}
 	
 	public function testOptionSelection(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'select' => 'bears'
 		]);
 	}
 
 	public function testSelectedOptionExclusivity(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'select-with-selected-option' => 'turnips'
 		]);
 
-		$options = $this->getForm()->element->querySelectorAll("select[name='select-with-selected-option'] > options");
+		$options = $this
+			->form
+			->element
+			->querySelectorAll("select[name='select-with-selected-option'] > options");
 
 		foreach($options as $option)
 		{
@@ -507,7 +508,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testSelectOptionWithinOptgroups(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'select-with-optgroups' => 'carrots'
 		]);
 	}
@@ -521,7 +522,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testMultiSelectEmptyByDefault(): void
 	{
-		$data = $this->getForm()->serialize();
+		$data = $this->form->serialize();
 
 		$this->assertIsArray($data['multi-select[]']);
 		$this->assertEmpty($data['multi-select[]']);
@@ -529,14 +530,14 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testSelectMultipleOptions(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'multi-select[]' => [
 				'ford',
 				'iveco'
 			]
 		]);
 
-		$data = $this->getForm()->serialize();
+		$data = $this->form->serialize();
 
 		$this->assertTrue(
 			$data['multi-select[]'] === ['ford', 'iveco']
@@ -554,19 +555,27 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testTextarea(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'textarea' => 'modified'
 		]);
 	}
 
 	public function testNonFormElement(): void
 	{
-		$this->populateWithRequired([
+		$this->submitWithRequired([
 			'populated-span' => 'test'
 		], false);
 
-		$span = new DOMObject( $this->getForm()->element->querySelector("[data-name='populated-span']") );
+		$span = new DOMObject( $this->form->element->querySelector("[data-name='populated-span']") );
 
 		$this->assertEquals('test', $span->text());
+	}
+
+	public function testPrePopulate(): void
+	{
+		// NB: Grab the state from the existing form, then make a new form and populate that with the state. This emulates initially populating a form from a data source such as a database.
+		$form = new DOMForm($this->document->find("form"), $this->form->serialize());
+
+		$this->assertEquals($this->form->serialize(), $form->serialize());
 	}
 }
