@@ -1,7 +1,7 @@
 {
 	"name": "perry-rylance/dom-form",
 	
-	"version": "1.0.0",
+	"version": "1.0.2",
 	"minimum-stability": "stable",
 	
 	"description": "A DOMDocument based form library, useful for quickly populating HTML forms, server side user input validation using HTML5's form validation elements, serialization, and error handling.",
