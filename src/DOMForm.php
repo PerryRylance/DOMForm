@@ -240,12 +240,15 @@ class DOMForm
 
 	private function validateReadonly(string $value, DOMElement $element): void
 	{
+		if($value == $element->getAttribute('value'))
+			return; // NB: Allow validation if there is no change. Browsers will send read-only fields, so provided the user hasn't changed anything, this is valid.
+
 		$this->handlePopulationError(new ReadonlyException($element, "Field is read only"));
 	}
 
 	private function validateDisabled(string $value, DOMElement $element): void
 	{
-		$this->handlePopulationError(new ReadonlyException($element, "Field is disabled"));
+		$this->handlePopulationError(new DisabledException($element, "Field is disabled"));
 	}
 
 	private function populateInput(string $value, DOMElement $element): void
