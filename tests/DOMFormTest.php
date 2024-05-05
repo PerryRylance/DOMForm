@@ -10,6 +10,7 @@ use PerryRylance\DOMForm\Exceptions\InvalidRegexException;
 use PerryRylance\DOMForm\Exceptions\Population\BadValueException;
 use PerryRylance\DOMForm\Exceptions\Population\CheckboxRequiredException;
 use PerryRylance\DOMForm\Exceptions\Population\DatetimeFormatException;
+use PerryRylance\DOMForm\Exceptions\Population\DisabledException;
 use PerryRylance\DOMForm\Exceptions\Population\NoElementsToPopulateException;
 use PerryRylance\DOMForm\Exceptions\Population\RadioRequiredException;
 use PerryRylance\DOMForm\Exceptions\Population\ReadonlyException;
@@ -76,7 +77,9 @@ final class DOMFormTest extends DOMFormBaseTestCase
 
 	public function testCannotAlterDisabledInput(): void
 	{
-		$this->testThrowsReadonlyException([
+		$this->expectException(DisabledException::class);
+
+		$this->form->submit([
 			'disabled' => 'test'
 		]);
 	}
@@ -147,7 +150,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 	public function testCannotPopulateRangeUnderMinimum(): void
 	{
 		$this->testThrowsBadValueException([
-			'range' => PHP_INT_MIN
+			'range' => PHP_INT_MIN + 1
 		]);
 	}
 
@@ -265,7 +268,7 @@ final class DOMFormTest extends DOMFormBaseTestCase
 	public function testNumericInputWithMaximum(): void
 	{
 		$this->submitWithRequired([
-			'maximum' => PHP_INT_MIN
+			'maximum' => PHP_INT_MIN + 1
 		]);
 	}
 

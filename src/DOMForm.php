@@ -22,6 +22,7 @@ use PerryRylance\DOMForm\Exceptions\Population\RadioRequiredException;
 use PerryRylance\DOMForm\Exceptions\Population\ValueRequiredException;
 use PerryRylance\DOMForm\Exceptions\Population\ReadonlyException;
 use PerryRylance\DOMForm\PopulateOptions;
+use RangeException;
 
 class DOMForm
 {
@@ -210,6 +211,9 @@ class DOMForm
 			}
 			else
 			{
+				if($value == PHP_INT_MIN)
+					throw new RangeException("Number out of processable range (must be greater than PHP_INT_MIN)");
+
 				$remainder = abs($value) % $step;
 
 				if($remainder !== 0)

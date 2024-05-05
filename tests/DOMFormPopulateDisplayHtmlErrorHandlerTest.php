@@ -81,7 +81,7 @@ class DOMFormPopulateDisplayHtmlErrorHandlerTest extends DOMFormBaseTestCase
 	public function testDisplaysRangeUnderMinimumMessage(): void
 	{
 		$this->submitWithRequired([
-			'range' => PHP_INT_MIN
+			'range' => PHP_INT_MIN + 1
 		]);
 
 		$this->assertErrorAfter('range');
