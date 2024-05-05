@@ -21,6 +21,7 @@ use PerryRylance\DOMForm\Exceptions\Population\NoElementsToPopulateException;
 use PerryRylance\DOMForm\Exceptions\Population\RadioRequiredException;
 use PerryRylance\DOMForm\Exceptions\Population\ValueRequiredException;
 use PerryRylance\DOMForm\Exceptions\Population\ReadonlyException;
+use PerryRylance\DOMForm\Exceptions\Population\ValueMismatchException;
 use PerryRylance\DOMForm\PopulateOptions;
 use RangeException;
 
@@ -255,6 +256,20 @@ class DOMForm
 		$this->handlePopulationError(new DisabledException($element, "Field is disabled"));
 	}
 
+	private function validateMatches(string $expected, DOMElement $element): void
+	{
+		$escaped = addslashes($element->getAttribute('data-matches'));
+		$other = $this->element->querySelector("[name='$escaped']");
+
+		if(is_null($other))
+			throw new Exception("Target element name '$escaped' not found");
+
+		$actual = $other->getAttribute('value');
+
+		if($actual !== $expected)
+			throw new ValueMismatchException($element, "Values must match");
+	}
+
 	private function populateInput(string $value, DOMElement $element): void
 	{
 		$type = $element->getAttribute('type') ?? '';
@@ -443,6 +458,9 @@ class DOMForm
 				$element = $target[0];
 				$name = strtolower($element->nodeName);
 
+				if(is_null($value))
+					$value = ""; // NB: Fix type checks down the line. Not sure if this needs handling some other way, but this mirrors JS.
+
 				if($element->hasAttribute("required"))
 					$this->validateRequired($value, $element);
 				
@@ -451,6 +469,9 @@ class DOMForm
 				
 				if($element->hasAttribute("disabled"))
 					$this->validateDisabled($value, $element);
+
+				if($element->hasAttribute("data-matches"))
+					$this->validateMatches($value, $element);
 
 				switch($name)
 				{

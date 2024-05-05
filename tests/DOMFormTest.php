@@ -14,6 +14,7 @@ use PerryRylance\DOMForm\Exceptions\Population\DisabledException;
 use PerryRylance\DOMForm\Exceptions\Population\NoElementsToPopulateException;
 use PerryRylance\DOMForm\Exceptions\Population\RadioRequiredException;
 use PerryRylance\DOMForm\Exceptions\Population\ReadonlyException;
+use PerryRylance\DOMForm\Exceptions\Population\ValueMismatchException;
 use PerryRylance\DOMForm\Exceptions\Population\ValueRequiredException;
 
 final class DOMFormTest extends DOMFormBaseTestCase
@@ -572,6 +573,24 @@ final class DOMFormTest extends DOMFormBaseTestCase
 		$span = new DOMObject( $this->form->element->querySelector("[data-name='populated-span']") );
 
 		$this->assertEquals('test', $span->text());
+	}
+
+	public function testRepeatPasswordMatches(): void
+	{
+		$this->submitWithRequired([
+			'password'			=> 'my-super-secret-password',
+			'repeat-password'	=> 'my-super-secret-password'
+		]);
+	}
+
+	public function testRepeatPasswordCannotMismatch(): void
+	{
+		$this->expectException(ValueMismatchException::class);
+
+		$this->submitWithRequired([
+			'password'			=> 'my-super-secret-password',
+			'repeat-password'	=> 'not-my-super-secret-password'
+		]);
 	}
 
 	public function testPrePopulate(): void
