@@ -267,7 +267,7 @@ class DOMForm
 		$actual = $other->getAttribute('value');
 
 		if($actual !== $expected)
-			throw new ValueMismatchException($element, "Values must match");
+			$this->handlePopulationError(new ValueMismatchException($element, "Values must match"));
 	}
 
 	private function populateInput(string $value, DOMElement $element): void
